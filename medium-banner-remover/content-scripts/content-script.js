@@ -1,62 +1,39 @@
-/* global browser, chrome */
+/* global _, removeMediumBanners */
 
-/* ======================== Extension API wrappers ========================= */
-function getFromStorage (key) {
-  if (chrome) {
-    return new Promise(resolve => chrome.storage.sync.get(key, v => resolve(v)))
+/**
+ * This script is injected when webpages are loaded.
+ */
+
+(() => {
+  const websiteIsMedium = () => window.location.href.includes('medium.com')
+
+  const defaultBannerClearer = _.pipe(
+    () => _.logInfo('Clearing banners...'),
+    () => ['header', 'nav'],
+    _.map(selector => _.querySelector(selector)(document)),
+    _.filter(_.isTruthy),
+    _.map(_.removeDomNode),
+    () => _.logInfo('Banners cleared')
+  )
+
+  const clearBanners = _.match(
+    [[websiteIsMedium, removeMediumBanners]],
+    defaultBannerClearer
+  )
+
+  const runIfAutoRunIsSet = () => _.getFromStorage(_.AUTO_RUN_STORAGE_KEY)
+    .then(storage => _.isTruthy(storage[_.AUTO_RUN_STORAGE_KEY]))
+    .then(_.whenExists(clearBanners))
+    .catch(error => _.logError('Error in content-script.js', error))
+
+  const onMessage = _.match([
+    [_.eq(_.CLEAR_BANNERS_MSG), clearBanners]
+  ])
+
+  const main = () => {
+    runIfAutoRunIsSet()
+    _.registerMessageListener(onMessage)
   }
-  if (browser) {
-    return browser.storage.sync.get(key)
-  }
-  return Promise.resolve()
-}
 
-function sendMessage (message) {
-  if (chrome) {
-    return chrome.runtime.sendMessage(message)
-  } else if (browser) {
-    return browser.runtime.sendMessage(message)
-  }
-}
-/* ========================================================================= */
-
-/* ========================= Storage Interactors =========================== */
-function pickAutoRun (obj) {
-  return obj.autoRun
-}
-
-function savedAutoRunIsChecked () {
-  return getFromStorage('autoRun').then(pickAutoRun).then(Boolean)
-}
-/* ========================================================================= */
-
-/* ============================== Messaging  =============================== */
-function sendClearBannersMessage () {
-  return sendMessage({ command: 'clearBanners' })
-}
-/* ========================================================================= */
-
-/* ============================= Utility Fns  ============================== */
-function when (predicate) {
-  return whenTrue => value => predicate(value) && whenTrue()
-}
-/* ========================================================================= */
-
-function websiteIsMedium () {
-  return window.location.href.includes('medium.com')
-}
-
-function bannersShouldBeCleared (autoClearIsOn) {
-  if (!autoClearIsOn) return false
-  return websiteIsMedium()
-}
-
-function clearBanners () {
-  return sendClearBannersMessage()
-}
-
-function main () {
-  savedAutoRunIsChecked().then(when(bannersShouldBeCleared)(clearBanners))
-}
-
-main()
+  main()
+})()

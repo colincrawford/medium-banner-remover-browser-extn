@@ -1,127 +1,64 @@
-/* =============================== Util Fns ================================ */
-function map (fn) {
-  return arr => arr.map(fn)
-}
-
-function filter (fn) {
-  return arr => arr.filter(fn)
-}
-
-function reduce (fn) {
-  return arr => initialVal => arr.reduce(fn, initialVal)
-}
-
-function isTruthy (value) {
-  return !!value
-}
-
-function pipe (fns) {
-  return reduce((acc, nextFn) => nextFn(acc))(fns)
-}
-
-function emptyArray (n) {
-  return Array(n).fill()
-}
-
-function first (arr) {
-  return arr[0]
-}
-
-function iF (predicate) {
-  return whenTrue => whenFalse => value => (
-    predicate(value) ? whenTrue(value) : whenFalse(value)
-  )
-}
-
-function when (predicate) {
-  return whenTrue => iF(predicate)(whenTrue)(() => undefined)
-}
-
-function id (value) {
-  return () => value
-}
-/* ========================================================================= */
-
-/* =============================== DOM Utils =============================== */
-function removeDomNode (domNode) {
-  return domNode.remove()
-}
-
-function querySelector (selector) {
-  return document.querySelector(selector)
-}
-
-function querySelectorAll (selector) {
-  return [...document.querySelectorAll(selector)]
-}
-
-function parentNode (domNode) {
-  return domNode.parentNode
-}
-
-function nthGenerationParent (n) {
-  const safelyGetParent = when(isTruthy)(parentNode)
-  const getNParents = map(id(safelyGetParent))(emptyArray(n))
-  return pipe(getNParents)
-}
-
-function hasText (text) {
-  return node => node.textContent.includes(text)
-}
-/* ========================================================================= */
-
-/* ============================ DOM Interactors ============================ */
-function getNav () {
-  return querySelector('nav')
-}
-
-function getMediumStickyHeader () {
-  return querySelector('.metabar.js-metabar')
-}
+/* global _ */
 
 /**
- * Prefer the more granular sticky header -
- * but sometimes the class names seem to
- * be obfuscated, so just grab the nav element
+ * This is loaded as a content script.
+ * It defines the function removeMediumBanners which can be used if we want to remove banners on medium.com
  */
-function getMediumHeader () {
-  const stickyHeader = getMediumStickyHeader()
-  return stickyHeader || getNav()
-}
 
-function getMediumStickyFooter () {
-  return querySelector('.js-stickyFooter')
-}
+/**
+ * Remove annoying banners / headers / footers from a medium.com page
+ */
+// eslint-disable-next-line
+const removeMediumBanners = (() => {
+  const NAV_SELECTOR = 'nav'
+  const STICKY_FOOTER_SELECTOR = '.js-stickyFooter'
+  const STICKY_HEADER_SELECTOR = '.metabar.js-metabar'
+  const BOTTOM_BANNER_SELECTOR = '.js-meterBanner'
+  const BOTTOM_BANNER_TEXT = 'Get one more story in your member preview when you sign up'
+  const LEFT_SIDEBAR_PANEL_SELECTOR = "[data-test-id='post-sidebar']"
+  const RIGHT_SIDEBAR_PANEL_TITLE_TEXT = 'Related'
 
-function getBottomBanner () {
-  return querySelector('.js-meterBanner')
-}
+  const nthGenerationParent = nth => _.eq(nth)(0)
+    ? _.identity
+    : _.pipe(
+      _.whenExists(_.parentNode),
+      _.whenExists(nthGenerationParent(nth - 1))
+    )
 
-function getBottomFreeSignUpExtraPreviewBanner () {
-  return pipe([
-    filter(hasText('Get one more story in your member preview when you sign up')),
-    first,
+  const hasText = text => node => node.textContent.includes(text)
+
+  const getBottomFreeSignUpExtraPreviewBanner = _.pipe(
+    _.querySelectorAll('h2'),
+    _.filter(hasText(BOTTOM_BANNER_TEXT)),
+    _.first,
     nthGenerationParent(6)
-  ])(querySelectorAll('h2'))
-}
+  )
 
-function getMediumBanners () {
-  return filter(isTruthy)([
-    getMediumHeader(),
-    getMediumStickyFooter(),
-    getBottomBanner(),
-    getBottomFreeSignUpExtraPreviewBanner()
-  ])
-}
+  const getRightSidebarPanel = _.pipe(
+    _.querySelectorAll('strong'),
+    _.filter(hasText(RIGHT_SIDEBAR_PANEL_TITLE_TEXT)),
+    _.first,
+    nthGenerationParent(9)
+  )
 
-/** removes the medium ad and popup banners from the page */
-function removeMediumBanners () {
-  return map(removeDomNode)(getMediumBanners())
-}
-/* ========================================================================= */
+  const getMediumBanners = _.pipe(
+    domNode => ([
+      _.querySelector(STICKY_FOOTER_SELECTOR)(domNode),
+      /** Prefer the more granular sticky header - but sometimes the class names seem to be obfuscated, so just grab the nav element */
+      _.querySelector(STICKY_HEADER_SELECTOR)(domNode) || _.querySelector(NAV_SELECTOR)(domNode),
+      _.querySelector(BOTTOM_BANNER_SELECTOR)(domNode),
+      ...(_.querySelectorAll(LEFT_SIDEBAR_PANEL_SELECTOR)(domNode)),
+      getRightSidebarPanel(domNode),
+      getBottomFreeSignUpExtraPreviewBanner(domNode)
+    ]),
+    _.filter(_.isTruthy)
+  )
 
-function main () {
-  removeMediumBanners()
-}
-
-main()
+  /** removes the medium ad and popup banners from the page */
+  return _.pipe(
+    () => _.logInfo('Removing Medium.com banners'),
+    () => getMediumBanners(document),
+    _.map(_.removeDomNode),
+    () => _.logInfo('Medium.com banners cleared')
+  )
+})()

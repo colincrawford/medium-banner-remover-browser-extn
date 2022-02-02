@@ -1,73 +1,32 @@
-/* global browser, chrome */
+/* global _ */
 
-/* ======================== Extension API wrappers ========================= */
-function getFromStorage (key) {
-  if (chrome) {
-    return new Promise(resolve => chrome.storage.sync.get(key, v => resolve(v)))
+const main = () => {
+  const AUTO_RUN_CHECKBOX_SELECTOR = '#auto-run'
+
+  const getAutoRunFromStorage = () => _.getFromStorage(_.AUTO_RUN_STORAGE_KEY)
+    .then(obj => _.isTruthy(obj[_.AUTO_RUN_STORAGE_KEY]))
+  const setAutoRunInStorage = autoRun => _.setInStorage({ [_.AUTO_RUN_STORAGE_KEY]: autoRun })
+
+  const getAutoRunCheckbox = _.querySelector(AUTO_RUN_CHECKBOX_SELECTOR)
+  const getAutoRunCheckboxValue = () => getAutoRunCheckbox(document).checked
+  const setAutoRunCheckbox = checked => {
+    getAutoRunCheckbox(document).checked = checked
   }
-  if (browser) {
-    return browser.storage.sync.get(key)
+
+  const handleFormSubmit = e => {
+    setAutoRunInStorage(getAutoRunCheckboxValue())
+    e.preventDefault()
   }
-  return Promise.resolve()
+
+  const listenForFormSubmit = _.pipe(
+    _.querySelector('form'),
+    _.addEventListener('submit')(handleFormSubmit)
+  )
+
+  getAutoRunFromStorage()
+    .then(setAutoRunCheckbox)
+    .then(() => listenForFormSubmit(document))
+    .catch(error => _.logError('Error in options.js', error))
 }
 
-function setInStorage (keyValues) {
-  if (chrome) {
-    return new Promise(resolve => chrome.storage.sync.set(keyValues, resolve))
-  }
-  if (browser) {
-    return browser.storage.sync.set(keyValues)
-  }
-  return Promise.resolve()
-}
-/* ========================================================================= */
-
-/* =========================== DOM interactors ============================= */
-function getAutoRunCheckbox () {
-  return document.querySelector('#auto-run')
-}
-
-function setAutoRunCheckbox (checked) {
-  const checkbox = getAutoRunCheckbox()
-  checkbox.checked = checked
-  return checkbox
-}
-
-function autoRunIsChecked () {
-  return getAutoRunCheckbox().checked
-}
-/* ========================================================================= */
-
-/* ========================= Storage Interactors =========================== */
-function pickAutoRun (obj) {
-  return obj.autoRun
-}
-
-/** returns a promise that resolves to a boolean saved by the user */
-function savedAutoRunIsChecked () {
-  return getFromStorage('autoRun').then(pickAutoRun).then(Boolean)
-}
-
-function saveOptions (e) {
-  setInStorage({ autoRun: autoRunIsChecked() })
-}
-/* ========================================================================= */
-
-function restoreOptions () {
-  return savedAutoRunIsChecked().then(setAutoRunCheckbox)
-}
-
-function handleFormSubmit (e) {
-  saveOptions()
-  e.preventDefault()
-}
-
-function listenForFormSubmit () {
-  return document.querySelector('form').addEventListener('submit', handleFormSubmit)
-}
-
-function main () {
-  restoreOptions().then(listenForFormSubmit)
-}
-
-main()
+_.addEventListener('DOMContentLoaded')(main)(document)

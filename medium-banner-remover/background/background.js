@@ -1,58 +1,22 @@
-/* global browserAction, chrome, tabs, browser */
-
-/* ======================== Extension API wrappers ========================= */
-function registerMessageListener (cb) {
-  if (chrome) {
-    return chrome.runtime.onMessage.addListener(cb)
-  } else if (browser) {
-    return browser.runtime.onMessage.addListener(cb)
-  }
-}
-
-function runMediumBannerRemoverScript (file) {
-  if (chrome) {
-    return chrome.tabs.executeScript({ file })
-  } else if (browser) {
-    return tabs.executeScript({ file })
-  }
-}
-/* ========================================================================= */
-
-/* ============================= Utility Fns  ============================== */
-function when (predicate) {
-  return whenTrue => value => predicate(value) && whenTrue()
-}
-/* ========================================================================= */
+/* global _ */
 
 /**
- * registers a cb with the browser to be run when the
- * extension icon is clicked
- * (the extension icon is on the bar at the top of the browser)
+ * This script runs as a service worker in the background of the browser
+ * https://developer.chrome.com/docs/extensions/mv3/service_workers/
  */
-function registerOnExtensionIconClicked (cb) {
-  if (chrome) {
-    return chrome.browserAction.onClicked.addListener(cb)
-  } else if (browser) {
-    return browserAction.onClicked.addListener(cb)
-  }
-}
+// eslint-disable-next-line
+self.importScripts('../shared.js')
+_.logInfo('Service worker running')
 
-function isClearBannersMessage (message) {
-  return message.command && (message.command === 'clearBanners')
-}
+const sendMessageToClearBanners = () => _.getCurrentTab()
+  .then(_.tap(() => _.logInfo('Service worker sending message to content script to clear banners')))
+  .then(tab => _.sendMessageToTab(tab)(_.CLEAR_BANNERS_MSG))
 
-function removeMediumBanners () {
-  const scriptPath = '/content-scripts/remove-medium-banners.js'
-  return runMediumBannerRemoverScript(scriptPath)
-}
-
-function registerOnClearBannersMessageListener () {
-  return registerMessageListener(when(isClearBannersMessage)(removeMediumBanners))
-}
-
-function main () {
-  registerOnExtensionIconClicked(removeMediumBanners)
-  registerOnClearBannersMessageListener()
-}
-
-main()
+/**
+ * When the user clicks the extension's icon on the browser toolbar,
+ * we send a message to the content script to remove banners from the page
+ */
+_.registerOnExtensionIconClicked(_.pipe(
+  () => _.logInfo('Service worker received a click from the extension icon'),
+  sendMessageToClearBanners
+))

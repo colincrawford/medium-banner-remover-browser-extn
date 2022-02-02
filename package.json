@@ -1,6 +1,6 @@
 {
   "name": "medium-banner-remover",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "Colin Crawford",
   "license": "MIT",
   "description": "Simple browser extension to remove annoying banners from medium articles",
@@ -11,31 +11,18 @@
     "remove",
     "banners"
   ],
-  "main": "medium-banner-remover/background.js",
+  "main": "medium-banner-remover/background/background.js",
   "scripts": {
-    "test": "eslint medium-banner-remover && npm run test:e2e",
-    "test:e2e": "start-server-and-test serve-test-app http://localhost:8080 cypress",
-    "cypress": "cypress run",
-    "cypress:open": "cypress open",
-    "serve-test-app": "cp medium-banner-remover/content-scripts/remove-medium-banners.js test-app/ && static-server test-app -p 8080",
-    "clean": "rimraf medium-banner-remover.zip",
+    "test": "npm run lint",
+    "lint": "standard medium-banner-remover",
+    "fix": "standard --fix medium-banner-remover",
+    "clean": "rm -rf medium-banner-remover.zip",
     "zip": "zip -r medium-banner-remover.zip medium-banner-remover",
     "firefox:build": "web-ext lint -s medium-banner-remover && web-ext build -s medium-banner-remover",
     "build": "npm run test && npm run clean && npm run zip && npm run firefox:build"
   },
   "devDependencies": {
-    "cypress": "^4.0.2",
-    "eslint": "^6.8.0",
-    "eslint-config-standard": "^14.1.0",
-    "eslint-plugin-chai-friendly": "^0.4.1",
-    "eslint-plugin-cypress": "^2.9.0",
-    "eslint-plugin-import": "^2.20.1",
-    "eslint-plugin-node": "^11.0.0",
-    "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.0.1",
-    "rimraf": "^3.0.2",
-    "start-server-and-test": "^1.10.8",
-    "static-server": "^2.2.1",
-    "web-ext": "^4.1.0"
+    "standard": "^16.0.4",
+    "web-ext": "^6.6.0"
   }
 }
