@@ -13,7 +13,8 @@
   ],
   "main": "medium-banner-remover/background/background.js",
   "scripts": {
-    "test": "npm run lint",
+    "test": "npm run lint && npm run test:unit",
+    "test:unit": "jest",
     "lint": "standard medium-banner-remover",
     "fix": "standard --fix medium-banner-remover",
     "clean": "rm -rf medium-banner-remover.zip",
@@ -21,7 +22,13 @@
     "firefox:build": "web-ext lint -s medium-banner-remover && web-ext build -s medium-banner-remover",
     "build": "npm run test && npm run clean && npm run zip && npm run firefox:build"
   },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": ["<rootDir>/tests/**/*.test.js"]
+  },
   "devDependencies": {
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "standard": "^17.1.2",
     "web-ext": "^9.3.0"
   }
