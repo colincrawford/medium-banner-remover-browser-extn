@@ -17,10 +17,16 @@ const removeMediumBanners = (() => {
     'div[role="alert"]',
     // Navigation bar
     'nav',
+    // Branch.io "Open in App" smart banners
+    '#branch-journeys-top',
+    '#branch-banner-iframe',
+    // Sign-up nag overlays (from community filter lists)
+    '.overlay.overlay--lighter',
     // Legacy selectors (may still apply on some custom Medium domains)
     '.js-stickyFooter',
     '.metabar.js-metabar',
-    '.js-meterBanner'
+    '.js-meterBanner',
+    '.postMeterBar'
   ]
 
   /** Selectors for elements that contain a privacy policy link (popup wrappers) */
