@@ -1,6 +1,6 @@
 {
   "name": "medium-banner-remover",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "author": "Colin Crawford",
   "license": "MIT",
   "description": "Simple browser extension to remove annoying banners from medium articles",
@@ -22,7 +22,7 @@
     "build": "npm run test && npm run clean && npm run zip && npm run firefox:build"
   },
   "devDependencies": {
-    "standard": "^16.0.4",
-    "web-ext": "^6.6.0"
+    "standard": "^17.1.2",
+    "web-ext": "^9.3.0"
   }
 }
