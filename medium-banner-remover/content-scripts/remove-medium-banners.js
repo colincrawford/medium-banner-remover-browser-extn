@@ -32,13 +32,21 @@ const removeMediumBanners = (() => {
   /** Selectors for elements that contain a privacy policy link (popup wrappers) */
   const PRIVACY_BANNER_SELECTOR = 'a[href*="policy.medium.com/medium-privacy-policy"]'
 
+  const MAX_BANNER_HEIGHT = 200
+
   const findPrivacyBannerRoot = domNode => {
     const link = domNode.querySelector(PRIVACY_BANNER_SELECTOR)
     if (!link) return null
-    // Walk up to find the top-level overlay wrapper (direct child of body)
+    // Walk up to find the banner wrapper, but stop before we reach an
+    // element that is clearly too large to be a banner (e.g. the page root).
     let el = link
     while (el.parentNode && el.parentNode !== domNode.body && el.parentNode !== domNode) {
-      el = el.parentNode
+      const parent = el.parentNode
+      const parentHeight = parent.getBoundingClientRect
+        ? parent.getBoundingClientRect().height
+        : 0
+      if (parentHeight > MAX_BANNER_HEIGHT) break
+      el = parent
     }
     return el
   }

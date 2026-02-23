@@ -89,6 +89,29 @@ describe('removeMediumBanners', () => {
     expect(document.querySelector('p').textContent).toBe('Article')
   })
 
+  test('does not remove page content when privacy link is inside a large container', () => {
+    document.body.innerHTML =
+      '<div id="root">' +
+      '  <div id="content">' +
+      '    <article>Article content</article>' +
+      '    <footer>' +
+      '      <div id="privacy-bar">' +
+      '        <a href="https://policy.medium.com/medium-privacy-policy">Privacy</a>' +
+      '      </div>' +
+      '    </footer>' +
+      '  </div>' +
+      '</div>'
+    // Mock getBoundingClientRect to simulate real layout sizes
+    document.getElementById('root').getBoundingClientRect = () => ({ height: 5000 })
+    document.getElementById('content').getBoundingClientRect = () => ({ height: 5000 })
+    document.querySelector('footer').getBoundingClientRect = () => ({ height: 60 })
+    document.getElementById('privacy-bar').getBoundingClientRect = () => ({ height: 60 })
+    removeMediumBanners()
+    expect(document.querySelector('article').textContent).toBe('Article content')
+    expect(document.getElementById('root')).not.toBeNull()
+    expect(document.getElementById('content')).not.toBeNull()
+  })
+
   test('removes fixed-position top banners', () => {
     document.body.innerHTML = '<div id="fixed-top">Banner</div><p>Content</p>'
     const fixedEl = document.getElementById('fixed-top')
